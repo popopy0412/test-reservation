@@ -23,6 +23,9 @@ public class ReservationService {
     public void reserve(Long userId, Long busScheduleId) {
         BusSchedule busSchedule = busScheduleRepository.findById(busScheduleId)
                 .orElseThrow(() -> new ReservationException("해당 버스 스케쥴이 없습니다."));
+        if (reservationRepository.existsByBusScheduleIdAndUserId(userId, busScheduleId)) {
+            throw new ReservationException("이미 예약했습니다.");
+        }
 
 //        if (!busSchedule.issue()) throw new ReservationException("버스가 꽉찼습니다.");
 //        busScheduleRepository.save(busSchedule);
