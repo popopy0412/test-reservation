@@ -1,0 +1,7 @@
+package com.feeeeel.testreservation.domain.reservation.repository;
+
+import com.feeeeel.testreservation.domain.reservation.entity.Reservation;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+}
