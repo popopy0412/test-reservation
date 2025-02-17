@@ -17,13 +17,12 @@ public class BusSchedule {
     @Column(nullable = false)
     private Integer count;
 
+    @Version
+    private Long version;
+
     public boolean issue() {
         if (count >= 15) return false;
         count++;
         return true;
-    }
-
-    public void init() {
-        count = 0;
     }
 }

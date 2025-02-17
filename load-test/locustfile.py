@@ -1,4 +1,5 @@
-from locust import task, FastHttpUser, between
+import locust.env
+from locust import task, FastHttpUser
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -7,7 +8,7 @@ logger = logging.getLogger(__name__)
 class HelloWorld(FastHttpUser):
     connection_timeout = 10.0
     network_timeout = 10.0
-    user_id_seq = 1  # 클래스 변수 (모든 인스턴스가 공유)
+    user_id_seq = 1 # 클래스 변수
 
     @classmethod
     def get_next_user_id(cls):
