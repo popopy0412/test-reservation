@@ -2,7 +2,7 @@ package com.feeeeel.testreservation;
 
 import com.feeeeel.testreservation.domain.reservation.exception.ReservationException;
 import com.feeeeel.testreservation.domain.reservation.repository.ReservationRepository;
-import com.feeeeel.testreservation.domain.reservation.service.ReservationQueueManager;
+import com.feeeeel.testreservation.domain.reservation.service.ReservationManager;
 import com.feeeeel.testreservation.domain.reservation.service.ReservationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ public class ReservationTest {
     private ReservationService reservationService;
 
     @Autowired
-    private ReservationQueueManager reservationQueueManager;
+    private ReservationManager ReservationManager;
 
     private static final int NUM_OF_USER = 100;
     private static final int NUM_OF_SUCCESS = Math.min(NUM_OF_USER, 15);

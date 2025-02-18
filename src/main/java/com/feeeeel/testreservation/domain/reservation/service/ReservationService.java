@@ -18,7 +18,7 @@ public class ReservationService {
 
     private final BusScheduleRepository busScheduleRepository;
     private final ReservationRepository reservationRepository;
-    private final ReservationQueueManager reservationQueueManager;
+    private final ReservationManager ReservationManager;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     public void reserve(Long userId, Long busScheduleId) {
@@ -26,7 +26,7 @@ public class ReservationService {
             throw new ReservationException("이미 예약했습니다.");
         }
         try {
-            reservationQueueManager.addReservation(userId, busScheduleId);
+            ReservationManager.addReservation(userId, busScheduleId);
         } catch (Exception e) {
             throw new ReservationException("예매에 실패했습니다.");
         }
@@ -34,6 +34,6 @@ public class ReservationService {
 
     @Transactional
     public void confirm(Long userId, Long busScheduleId) {
-        reservationQueueManager.confirmReservation(userId, busScheduleId);
+        ReservationManager.confirmReservation(userId, busScheduleId);
     }
 }
