@@ -4,6 +4,11 @@ spring:
         username: root
         password: 1234
         driver-class-name: com.mysql.cj.jdbc.Driver
+        hikari:
+            minimum-idle: 5
+            maximum-pool-size: 20
+            idle-timeout: 30000 # 30초
+            max-lifetime: 600000 # 10분
 
     jpa:
         database: mysql
@@ -14,6 +19,7 @@ spring:
                 dialect: org.hibernate.dialect.MySQL8Dialect
                 format_sql: true
                 show_sql: false
+
 
 server:
     port: 8081

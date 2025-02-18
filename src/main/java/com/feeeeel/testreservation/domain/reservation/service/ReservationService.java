@@ -1,16 +1,17 @@
 package com.feeeeel.testreservation.domain.reservation.service;
 
-import com.feeeeel.testreservation.domain.reservation.entity.BusSchedule;
 import com.feeeeel.testreservation.domain.reservation.exception.ReservationException;
-import com.feeeeel.testreservation.domain.reservation.model.ReservationRequest;
 import com.feeeeel.testreservation.domain.reservation.repository.BusScheduleRepository;
 import com.feeeeel.testreservation.domain.reservation.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
@@ -18,23 +19,17 @@ public class ReservationService {
     private final BusScheduleRepository busScheduleRepository;
     private final ReservationRepository reservationRepository;
     private final ReservationQueueManager reservationQueueManager;
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-    @Transactional
     public void reserve(Long userId, Long busScheduleId) {
-        BusSchedule busSchedule = busScheduleRepository.findById(busScheduleId)
-                .orElseThrow(() -> new ReservationException("해당 버스 스케쥴이 없습니다."));
         if (reservationRepository.existsByBusScheduleIdAndUserId(userId, busScheduleId)) {
             throw new ReservationException("이미 예약했습니다.");
         }
-
-//        if (!busSchedule.issue()) throw new ReservationException("버스가 꽉찼습니다.");
-//        busScheduleRepository.save(busSchedule);
-//        reservationRepository.save(Reservation.builder()
-//                .userId(userId)
-//                .status(Status.PENDING)
-//                .busSchedule(busSchedule)
-//                .build());
-        reservationQueueManager.addReservation(new ReservationRequest(userId, busScheduleId, LocalDateTime.now(), false));
+        try {
+            reservationQueueManager.addReservation(userId, busScheduleId);
+        } catch (Exception e) {
+            throw new ReservationException("예매에 실패했습니다.");
+        }
     }
 
     @Transactional

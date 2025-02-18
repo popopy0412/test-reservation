@@ -2,6 +2,7 @@ package com.feeeeel.testreservation;
 
 import com.feeeeel.testreservation.domain.reservation.exception.ReservationException;
 import com.feeeeel.testreservation.domain.reservation.repository.ReservationRepository;
+import com.feeeeel.testreservation.domain.reservation.service.ReservationQueueManager;
 import com.feeeeel.testreservation.domain.reservation.service.ReservationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 @SpringBootTest
 public class ReservationTest {
@@ -28,8 +30,11 @@ public class ReservationTest {
     @Autowired
     private ReservationService reservationService;
 
+    @Autowired
+    private ReservationQueueManager reservationQueueManager;
+
     private static final int NUM_OF_USER = 100;
-    private static final int NUM_OF_SUCCESS = 15;
+    private static final int NUM_OF_SUCCESS = Math.min(NUM_OF_USER, 15);
     private final ExecutorService executorService = Executors.newFixedThreadPool(NUM_OF_USER);
 
     @Test
@@ -42,31 +47,32 @@ public class ReservationTest {
             executorService.execute(() -> {
                 try {
                     log.info("User ID: {} Reserve Start", finalI);
-                    countDownLatch.countDown();
                     reservationService.reserve((long) finalI, 1L);
                     log.info("=======User ID: {} Reserve Success!=========", finalI);
                 } catch (ReservationException e) {
                     log.info("User ID: {} Failed to reserve", finalI);
                 }
+                countDownLatch.countDown();
             });
         }
 
         countDownLatch.await();
         Thread.sleep(1000);
 
-        CountDownLatch countDownLatch2 = new CountDownLatch(NUM_OF_SUCCESS);
+        CountDownLatch countDownLatch2 = new CountDownLatch(NUM_OF_USER);
 
         for (int i = 1; i <= NUM_OF_USER; i++) {
             int finalI = i;
             executorService.execute(() -> {
                 try {
                     log.info("User ID: {} Confirm Start", finalI);
-                    countDownLatch2.countDown();
                     reservationService.confirm((long) finalI, 1L);
                     log.info("=======User ID: {} Confirm Success!=========", finalI);
                 } catch (ReservationException e) {
+                    assertNotEquals("X", e.getMessage());
                     log.info("User ID: {} Failed to confirm", finalI);
                 }
+                countDownLatch2.countDown();
             });
         }
 

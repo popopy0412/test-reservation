@@ -28,8 +28,8 @@ class SequencialApiCalls(TaskSet):
             "busScheduleId": busScheduleId,
         })
 
-        if response.status_code == 200:
-            logger.info(f"✅ 임시 예매 성공 - User ID: {self.user_id}")
+        # if response.status_code == 200:
+        #     logger.info(f"✅ 임시 예매 성공 - User ID: {self.user_id}, busScheduleId: {busScheduleId}")
 
     @task
     def step_2(self):
@@ -46,8 +46,8 @@ class SequencialApiCalls(TaskSet):
             "busScheduleId": busScheduleId,
         })
 
-        if response.status_code == 200:
-            logger.info(f"✅ 티켓 구매 성공 - User ID: {self.user_id}")
+        if response.status_code == 201:
+            logger.info(f"✅ 티켓 구매 성공 - User ID: {self.user_id}, busScheduleId: {busScheduleId}")
 
     @classmethod
     def get_next_user_id(cls):
