@@ -25,8 +25,8 @@ public class ReservationRequest {
 
     @Override
     public boolean equals(Object o) {
-        return (ReservationRequest.class.equals(o.getClass())
-                && userId.equals(((ReservationRequest) o).userId))
+        return o instanceof ReservationRequest
+                && userId.equals(((ReservationRequest) o).userId)
                 && (busScheduleId.equals(((ReservationRequest) o).busScheduleId));
     }
 }

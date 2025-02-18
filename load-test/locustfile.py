@@ -1,6 +1,7 @@
 import locust.env
 from locust import task, FastHttpUser
 import logging
+import random
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ class HelloWorld(FastHttpUser):
 
         response = self.client.post(url="/api/reservation", headers=headers, json={
             "userId": self.user_id,
-            "busScheduleId": 1
+            "busScheduleId": random.randint(1,3)
         })
 
         if response.status_code == 200:

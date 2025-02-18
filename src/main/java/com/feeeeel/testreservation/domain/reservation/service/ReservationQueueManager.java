@@ -12,8 +12,6 @@ import com.feeeeel.testreservation.domain.reservation.repository.TicketRepositor
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,7 +55,7 @@ public class ReservationQueueManager {
     }
 
     // 예매 요청 추가 (좌석 수 체크 후 큐에 추가)
-    public synchronized void addReservation(ReservationRequest request) {
+    public void addReservation(ReservationRequest request) {
         Long busScheduleId = request.getBusScheduleId();
         Long userId = request.getUserId();
 
@@ -67,9 +65,10 @@ public class ReservationQueueManager {
         int reservedSeats = busSchedule.getCount();
         int pendingSeats = pendingReservations.getOrDefault(busScheduleId, ConcurrentHashMap.newKeySet()).size();
         int totalSeats = reservedSeats + pendingSeats;
+        log.info("현재 예매 + 대기 중인 좌석: {}", totalSeats);
 
         //대기열 + 기존 예약자 수 = 15면 거부
-        if (totalSeats > MAX_CAPACITY) {
+        if (totalSeats >= MAX_CAPACITY) {
             log.info("User ID: {} 예매 실패 - 대기열 포함 최대 좌석 수 초과", userId);
             throw new ReservationException("예매 가능한 좌석이 없습니다.");
         }

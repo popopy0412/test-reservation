@@ -36,24 +36,41 @@ public class ReservationTest {
     @Transactional
     @DisplayName("100명 시도, 15명 예매 잘 되는지 확인")
     void test() throws Exception {
-        CountDownLatch countDownLatch = new CountDownLatch(1);
+        CountDownLatch countDownLatch = new CountDownLatch(NUM_OF_USER);
         for (int i = 1; i <= NUM_OF_USER; i++) {
             int finalI = i;
             executorService.execute(() -> {
                 try {
-                    countDownLatch.await();
-                    log.info("User ID: {} Start", finalI);
+                    log.info("User ID: {} Reserve Start", finalI);
+                    countDownLatch.countDown();
                     reservationService.reserve((long) finalI, 1L);
-                    log.info("=======User ID: {} Success!=========", finalI);
-                } catch (ReservationException | InterruptedException e) {
+                    log.info("=======User ID: {} Reserve Success!=========", finalI);
+                } catch (ReservationException e) {
                     log.info("User ID: {} Failed to reserve", finalI);
-                    return;
                 }
             });
         }
 
-        countDownLatch.countDown();
+        countDownLatch.await();
         Thread.sleep(1000);
+
+        CountDownLatch countDownLatch2 = new CountDownLatch(NUM_OF_SUCCESS);
+
+        for (int i = 1; i <= NUM_OF_USER; i++) {
+            int finalI = i;
+            executorService.execute(() -> {
+                try {
+                    log.info("User ID: {} Confirm Start", finalI);
+                    countDownLatch2.countDown();
+                    reservationService.confirm((long) finalI, 1L);
+                    log.info("=======User ID: {} Confirm Success!=========", finalI);
+                } catch (ReservationException e) {
+                    log.info("User ID: {} Failed to confirm", finalI);
+                }
+            });
+        }
+
+        countDownLatch2.await();
 
         long reservedCount = reservationRepository.findAll().size();
 
