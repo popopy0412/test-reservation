@@ -5,6 +5,7 @@ import random
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 user_id_seq = 1
+scheduleNum = 15
 
 class SequencialApiCalls(TaskSet):
     user_id_seq = 1
@@ -21,7 +22,7 @@ class SequencialApiCalls(TaskSet):
             "Content-Type": "application/json"
         }
         user_id = random.randint(1, 1000)
-        busScheduleId = random.randint(1,3)
+        busScheduleId = random.randint(1, scheduleNum)
 
         response = self.client.post(url="/api/reservation", headers=headers, json={
             "userId": user_id,
@@ -39,7 +40,7 @@ class SequencialApiCalls(TaskSet):
             "Content-Type": "application/json"
         }
         user_id = random.randint(1, 1000)
-        busScheduleId = random.randint(1,3)
+        busScheduleId = random.randint(1, scheduleNum)
 
         response = self.client.post(url="/api/reservation/confirm", headers=headers, json={
             "userId": user_id,

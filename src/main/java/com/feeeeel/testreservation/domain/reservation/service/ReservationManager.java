@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 @Service
@@ -25,6 +26,7 @@ public class ReservationManager {
     private final BusScheduleRepository busScheduleRepository;
     private final ReservationRepository reservationRepository;
     private final Map<Long, Semaphore> busSemaphores = new ConcurrentHashMap<>();
+    private final Map<Long, ReentrantLock> confirmLocks = new ConcurrentHashMap<>();
     private final Map<Long, Set<Long>> pendingReservations = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final int MAX_SEATS = 15;
@@ -33,7 +35,6 @@ public class ReservationManager {
     /**
      * 버스 스케줄별 Semaphore 생성 및 관리
      */
-
     private Semaphore getSemaphore(Long busScheduleId) {
         return busSemaphores.computeIfAbsent(busScheduleId, id -> {
             BusSchedule schedule = busScheduleRepository.findById(busScheduleId)
@@ -44,7 +45,7 @@ public class ReservationManager {
     }
 
     /**
-     * 예매 요청 처리 (최대 `MAX_CAPACITY` 만큼 동시 예약 가능)
+     * 예매 요청 처리 (남은 좌석 만큼 동시 예약 가능)
      */
     public void addReservation(Long userId, Long busScheduleId) {
         Semaphore semaphore = getSemaphore(busScheduleId);
@@ -79,21 +80,34 @@ public class ReservationManager {
      */
     @Transactional
     public void confirmReservation(Long userId, Long busScheduleId) {
-        BusSchedule busSchedule = getBusSchedule(busScheduleId);
-
         Set<Long> userSet = pendingReservations.get(busScheduleId);
         if (userSet == null || !userSet.contains(userId)) {
             throw new ReservationException("예약 대기 목록에 없습니다.");
         }
 
+        confirmLocks.computeIfAbsent(busScheduleId, id -> new ReentrantLock());
+        ReentrantLock lock = confirmLocks.get(busScheduleId);
+
+        lock.lock();
+//        BusSchedule busSchedule = getBusSchedule(busScheduleId);
+        BusSchedule busSchedule = busScheduleRepository.findById(busScheduleId)
+                .orElseThrow(() -> new ReservationException("버스 스케쥴이 없습니다."));
         if (!busSchedule.issue()) throw new ReservationException("X");
         busSchedule = busScheduleRepository.save(busSchedule);
+        lock.unlock();
+
         Reservation reservation = reservationRepository.save(new Reservation(null, userId, Status.CONFIRMED, busSchedule));
         ticketRepository.save(new Ticket(null, reservation.getId(), userId, busScheduleId));
 
         userSet.remove(userId);
         busSemaphores.get(busScheduleId).release();
         log.info("User ID: {} 예매 확정 완료", userId);
+    }
+
+    public void cancelReservation(Long userId, Long busScheduleId) {
+        Semaphore semaphore = getSemaphore(busScheduleId);
+        // 취소 로직 처리
+        semaphore.release();
     }
 
     private BusSchedule getBusSchedule(Long busScheduleId) {

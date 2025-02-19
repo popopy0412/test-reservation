@@ -54,6 +54,7 @@ public class ReservationTest {
                 }
                 countDownLatch.countDown();
             });
+            Thread.sleep(20);
         }
 
         countDownLatch.await();
