@@ -29,4 +29,16 @@ public class ReservationController {
         }
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    @PostMapping("/confirm")
+    public ResponseEntity<Void> confirm(
+            @RequestBody RequestReservationDto dto
+    ) {
+        try {
+            reservationService.confirm(dto.getUserId(), dto.getBusScheduleId());
+        } catch (ReservationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
 }

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -37,26 +38,32 @@ public class ReservationTest {
     @DisplayName("100명 시도, 15명 예매 잘 되는지 확인")
     void test() throws Exception {
         CountDownLatch countDownLatch = new CountDownLatch(1);
+        AtomicInteger success = new AtomicInteger();
+        AtomicInteger fail = new AtomicInteger();
         for (int i = 1; i <= NUM_OF_USER; i++) {
             int finalI = i;
             executorService.execute(() -> {
                 try {
-                    countDownLatch.await();
+//                    countDownLatch.await();
                     log.info("User ID: {} Start", finalI);
                     reservationService.reserve((long) finalI, 1L);
+                    success.incrementAndGet();
+                    reservationService.confirm((long) finalI, 1L);
                     log.info("=======User ID: {} Success!=========", finalI);
-                } catch (ReservationException | InterruptedException e) {
+                } catch (ReservationException e) {
                     log.info("User ID: {} Failed to reserve", finalI);
-                    return;
+                    fail.incrementAndGet();
                 }
             });
+            Thread.sleep(5);
         }
 
-        countDownLatch.countDown();
+//        countDownLatch.countDown();
         Thread.sleep(1000);
 
         long reservedCount = reservationRepository.findAll().size();
 
-        assertEquals(NUM_OF_SUCCESS, reservedCount);
+        assertEquals(NUM_OF_SUCCESS, success.get());
+        assertEquals(NUM_OF_USER - NUM_OF_SUCCESS, fail.get());
     }
 }

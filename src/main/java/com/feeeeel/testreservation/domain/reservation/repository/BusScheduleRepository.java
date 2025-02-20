@@ -11,6 +11,10 @@ import java.util.Optional;
 
 public interface BusScheduleRepository extends JpaRepository<BusSchedule, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query(value = "SELECT b FROM BusSchedule b WHERE b.id = :id")
+    @Query("SELECT b FROM BusSchedule b WHERE b.id = :id")
+    Optional<BusSchedule> findByIdForUpdate(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_READ)
+    @Query("SELECT b FROM BusSchedule b WHERE b.id = :id")
     Optional<BusSchedule> findById(@Param("id") Long id);
 }

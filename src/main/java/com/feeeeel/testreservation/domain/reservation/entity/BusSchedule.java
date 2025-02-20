@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class BusSchedule {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
     @Column(nullable = false)
@@ -20,6 +20,12 @@ public class BusSchedule {
     public boolean issue() {
         if (count >= 15) return false;
         count++;
+        return true;
+    }
+
+    public boolean cancel() {
+        if (count <= 0) return false;
+        count--;
         return true;
     }
 
