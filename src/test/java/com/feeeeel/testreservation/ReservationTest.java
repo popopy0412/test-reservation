@@ -1,22 +1,16 @@
 package com.feeeeel.testreservation;
 
-import com.feeeeel.testreservation.domain.reservation.entity.BusSchedule;
-import com.feeeeel.testreservation.domain.reservation.entity.Reservation;
 import com.feeeeel.testreservation.domain.reservation.exception.ReservationException;
-import com.feeeeel.testreservation.domain.reservation.repository.BusScheduleRepository;
 import com.feeeeel.testreservation.domain.reservation.repository.ReservationRepository;
 import com.feeeeel.testreservation.domain.reservation.service.ReservationService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
