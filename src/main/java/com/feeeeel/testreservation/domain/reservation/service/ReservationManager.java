@@ -8,11 +8,15 @@ import com.feeeeel.testreservation.domain.reservation.exception.ReservationExcep
 import com.feeeeel.testreservation.domain.reservation.repository.BusScheduleRepository;
 import com.feeeeel.testreservation.domain.reservation.repository.ReservationRepository;
 import com.feeeeel.testreservation.domain.reservation.repository.TicketRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -25,16 +29,31 @@ public class ReservationManager {
 
     private final BusScheduleRepository busScheduleRepository;
     private final ReservationRepository reservationRepository;
+    private final TicketRepository ticketRepository;
     private final Map<Long, Semaphore> busSemaphores = new ConcurrentHashMap<>();
     private final Map<Long, ReentrantLock> confirmLocks = new ConcurrentHashMap<>();
     private final Map<Long, Set<Long>> pendingReservations = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final int MAX_SEATS = 15;
-    private final TicketRepository ticketRepository;
 
     /**
      * 버스 스케줄별 Semaphore 생성 및 관리
      */
+    @PostConstruct
+    private void init() {
+        List<BusSchedule> busSchedules = busScheduleRepository.findAll();
+
+        busSchedules.forEach(busSchedule -> {
+            busSemaphores.putIfAbsent(busSchedule.getId(), new Semaphore(MAX_SEATS - busSchedule.getCount(), true));
+            confirmLocks.putIfAbsent(busSchedule.getId(), new ReentrantLock(true));
+            pendingReservations.putIfAbsent(busSchedule.getId(), ConcurrentHashMap.newKeySet());
+        });
+        log.info("Semaphores initialized");
+        log.info("Semaphores count: {}", busSemaphores.size());
+        log.info("Semaphores available: {}", busSemaphores.size());
+        log.info("Confirm Locks: {}", confirmLocks.size());
+    }
+
     private Semaphore getSemaphore(Long busScheduleId) {
         return busSemaphores.computeIfAbsent(busScheduleId, id -> {
             BusSchedule schedule = busScheduleRepository.findById(busScheduleId)
@@ -47,23 +66,27 @@ public class ReservationManager {
     /**
      * 예매 요청 처리 (남은 좌석 만큼 동시 예약 가능)
      */
-    public void addReservation(Long userId, Long busScheduleId) {
+    public void addReservation(Long userId, Long busScheduleId)  {
         Semaphore semaphore = getSemaphore(busScheduleId);
-
-        pendingReservations.putIfAbsent(busScheduleId, ConcurrentHashMap.newKeySet());
         Set<Long> userSet = pendingReservations.get(busScheduleId);
 
         if (userSet.contains(userId)) {
             throw new ReservationException("이미 예약 진행 중인 사용자입니다.");
         }
 
-        if (!semaphore.tryAcquire()) {
+        try {
+            if (!semaphore.tryAcquire(0, TimeUnit.SECONDS)) {
+//                log.info("좌석 없음. User ID: {}, Bus Schedule ID: {}", userId, busScheduleId);
+                throw new ReservationException("예매 가능한 좌석이 없습니다.");
+            }
+        } catch (InterruptedException e) {
+//            log.info("좌석 없음. User ID: {}, Bus Schedule ID: {}", userId, busScheduleId);
             throw new ReservationException("예매 가능한 좌석이 없습니다.");
         }
 
         userSet.add(userId);
 
-        log.info("User ID: {} 예매 대기 목록 추가됨", userId);
+        log.info("User ID: {} 예매 대기 목록 추가됨, Bus Schedule ID: {}", userId, busScheduleId);
 
         // 5분 후 자동 취소 (confirmReservation() 호출 없을 경우)
         scheduler.schedule(() -> {
@@ -72,7 +95,7 @@ public class ReservationManager {
                 userSet.remove(userId);
                 semaphore.release(); // 세마포어 해제
             }
-        }, 5, TimeUnit.MINUTES);
+        }, 3, TimeUnit.SECONDS);
     }
 
     /**
@@ -80,34 +103,46 @@ public class ReservationManager {
      */
     @Transactional
     public void confirmReservation(Long userId, Long busScheduleId) {
+        ReentrantLock lock = confirmLocks.get(busScheduleId);
+
         Set<Long> userSet = pendingReservations.get(busScheduleId);
         if (userSet == null || !userSet.contains(userId)) {
             throw new ReservationException("예약 대기 목록에 없습니다.");
         }
 
-        confirmLocks.computeIfAbsent(busScheduleId, id -> new ReentrantLock());
-        ReentrantLock lock = confirmLocks.get(busScheduleId);
-
         lock.lock();
-//        BusSchedule busSchedule = getBusSchedule(busScheduleId);
-        BusSchedule busSchedule = busScheduleRepository.findById(busScheduleId)
-                .orElseThrow(() -> new ReservationException("버스 스케쥴이 없습니다."));
-        if (!busSchedule.issue()) throw new ReservationException("X");
-        busSchedule = busScheduleRepository.save(busSchedule);
-        lock.unlock();
+        try {
+            BusSchedule busSchedule = busScheduleRepository.findById(busScheduleId)
+                    .orElseThrow(() -> new ReservationException("버스 스케쥴이 없습니다."));
 
-        Reservation reservation = reservationRepository.save(new Reservation(null, userId, Status.CONFIRMED, busSchedule));
-        ticketRepository.save(new Ticket(null, reservation.getId(), userId, busScheduleId));
+            if (!busSchedule.issue()) {
+                throw new ReservationException("X");
+            }
+            busScheduleRepository.save(busSchedule);
 
-        userSet.remove(userId);
-        busSemaphores.get(busScheduleId).release();
-        log.info("User ID: {} 예매 확정 완료", userId);
-    }
+            Reservation reservation = reservationRepository.save(new Reservation(null, userId, Status.CONFIRMED, busSchedule));
+            ticketRepository.save(new Ticket(null, reservation.getId(), userId, busScheduleId));
+            userSet.remove(userId);
 
-    public void cancelReservation(Long userId, Long busScheduleId) {
-        Semaphore semaphore = getSemaphore(busScheduleId);
-        // 취소 로직 처리
-        semaphore.release();
+            log.info("User ID: {} 예매 확정 완료, Bus Schedule ID: {}", userId, busScheduleId);
+
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                            log.warn("롤백 발생 - User ID: {} 예매 실패, Bus Schedule ID: {}", userId, busScheduleId);
+                        }
+                    }
+                });
+            }
+
+        } catch (Exception e) {
+            log.error("결제 실패 - User ID: {}, Bus Schedule ID: {}", userId, busScheduleId);
+            throw e;
+        } finally {
+            lock.unlock();
+        }
     }
 
     private BusSchedule getBusSchedule(Long busScheduleId) {

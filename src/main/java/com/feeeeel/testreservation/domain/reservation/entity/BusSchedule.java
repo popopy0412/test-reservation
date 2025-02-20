@@ -17,8 +17,8 @@ public class BusSchedule {
     @Column(nullable = false)
     private Integer count;
 
-    @Version
-    private Long version;
+//    @Version
+//    private Integer version;
 
     public boolean issue() {
         if (count >= 15) return false;

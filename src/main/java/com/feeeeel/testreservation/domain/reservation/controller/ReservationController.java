@@ -37,6 +37,7 @@ public class ReservationController {
         try {
             reservationService.confirm(dto.getUserId(), dto.getBusScheduleId());
         } catch (ReservationException e) {
+            if (e.getMessage().equals("X")) return ResponseEntity.status(HttpStatus.CONFLICT).build();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return ResponseEntity.status(HttpStatus.CREATED).build();

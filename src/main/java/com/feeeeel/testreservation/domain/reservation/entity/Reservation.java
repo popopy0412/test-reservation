@@ -2,14 +2,15 @@ package com.feeeeel.testreservation.domain.reservation.entity;
 
 import com.feeeeel.testreservation.domain.reservation.entity.vo.Status;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Data
 @Entity
-@Builder
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Reservation {
+public class Reservation extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

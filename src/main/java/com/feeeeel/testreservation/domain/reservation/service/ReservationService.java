@@ -6,7 +6,6 @@ import com.feeeeel.testreservation.domain.reservation.repository.ReservationRepo
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -32,7 +31,6 @@ public class ReservationService {
         }
     }
 
-    @Transactional
     public void confirm(Long userId, Long busScheduleId) {
         ReservationManager.confirmReservation(userId, busScheduleId);
     }

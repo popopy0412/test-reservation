@@ -24,9 +24,9 @@ spring:
 server:
     port: 8081
 
-logging:
-    level:
-        org.hibernate.resource.transaction: DEBUG
-        org.hibernate.engine.transaction: DEBUG
-        org.springframework.transaction: DEBUG
-        org.springframework.orm.jpa: DEBUG
+#logging:
+#    level:
+#        org.hibernate.resource.transaction: DEBUG
+#        org.hibernate.engine.transaction: DEBUG
+#        org.springframework.transaction: DEBUG
+#        org.springframework.orm.jpa: DEBUG
