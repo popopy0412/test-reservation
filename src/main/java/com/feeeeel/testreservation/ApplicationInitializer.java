@@ -24,6 +24,7 @@ public class ApplicationInitializer {
         ticketRepository.deleteAllInBatch();
         for (BusSchedule busSchedule : busScheduleRepository.findAll()) {
             busSchedule.setCount(0);
+//            busSchedule.setVersion(0);
             busScheduleRepository.save(busSchedule);
         }
     }
