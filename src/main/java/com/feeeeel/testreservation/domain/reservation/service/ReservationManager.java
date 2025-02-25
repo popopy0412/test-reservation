@@ -113,12 +113,10 @@ public class ReservationManager {
         lock.lock();
         try {
             BusSchedule busSchedule = busScheduleRepository.findById(busScheduleId)
-                    .orElseThrow(() -> new ReservationException("버스 스케쥴이 없습니다."));
-
-            if (!busSchedule.issue()) {
+                    .orElseThrow(() -> new ReservationException("해당 버스 스케쥴이 없습니다."));
+            if (busScheduleRepository.issueTicket(busScheduleId) == 0) {
                 throw new ReservationException("X");
             }
-            busScheduleRepository.save(busSchedule);
 
             Reservation reservation = reservationRepository.save(new Reservation(null, userId, Status.CONFIRMED, busSchedule));
             ticketRepository.save(new Ticket(null, reservation.getId(), userId, busScheduleId));
@@ -143,10 +141,5 @@ public class ReservationManager {
         } finally {
             lock.unlock();
         }
-    }
-
-    private BusSchedule getBusSchedule(Long busScheduleId) {
-        return busScheduleRepository.findByIdForUpdate(busScheduleId)
-                .orElseThrow(() -> new ReservationException("버스 스케쥴이 없습니다."));
     }
 }

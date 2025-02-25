@@ -6,7 +6,7 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 user_id_seq = 1
-max_user_num = 10000
+max_user_num = 2000
 scheduleNum = 15
 
 class SequencialApiCalls(TaskSet):
