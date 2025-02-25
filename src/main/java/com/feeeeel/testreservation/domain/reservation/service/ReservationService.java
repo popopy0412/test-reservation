@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -36,15 +37,20 @@ public class ReservationService {
         reservationRepository.save(new Reservation(null, busSchedule, userId, Status.PENDING));
 
         scheduledExecutorService.schedule(() ->
-                 reservationManager.cancelReservation(userId, busScheduleId), 5*60, TimeUnit.SECONDS);
+                 reservationManager.cancelReservation(userId, busScheduleId), 1, TimeUnit.SECONDS);
     }
 
     @Transactional
     public void confirm(Long userId, Long busScheduleId) {
         if (!busScheduleRepository.existsById(busScheduleId)) throw new ReservationException(NO_BUS_SCHEDULE);
+        LocalDateTime now = LocalDateTime.now();
 
         Reservation reservation = reservationRepository.getReservation(userId, busScheduleId)
                 .orElseThrow(() -> new ReservationException("해당 예매 내역이 없습니다."));
+
+        if (reservation.getStatus().equals(Status.CANCELED)) {
+            throw new ReservationException("예매할 수 있는 기간이 만료되었습니다.");
+        }
 
         reservation.confirm();
     }
