@@ -32,17 +32,23 @@ public class ReservationService {
         BusSchedule busSchedule = busScheduleRepository.findByIdForUpdate(busScheduleId)
                 .orElseThrow(() -> new ReservationException(NO_BUS_SCHEDULE));
 
-        if (reservationRepository.existsReservation(userId, busScheduleId)) throw new ReservationException("이미 예매한 버스 스케쥴입니다.");
-        if (!busSchedule.issue()) throw new ReservationException("버스가 꽉찼습니다.");
+        if (reservationRepository.existsReservation(userId, busScheduleId)) {
+            throw new ReservationException("이미 예매한 버스 스케쥴입니다.");
+        }
+        if (!busSchedule.issue()) {
+            throw new ReservationException("버스가 꽉찼습니다.");
+        }
         reservationRepository.save(new Reservation(null, busSchedule, userId, Status.PENDING));
 
         scheduledExecutorService.schedule(() ->
-                 reservationManager.cancelReservation(userId, busScheduleId), 1, TimeUnit.SECONDS);
+                 reservationManager.cancelReservation(userId, busScheduleId), 5, TimeUnit.MINUTES);
     }
 
     @Transactional
     public void confirm(Long userId, Long busScheduleId) {
-        if (!busScheduleRepository.existsById(busScheduleId)) throw new ReservationException(NO_BUS_SCHEDULE);
+        if (!busScheduleRepository.existsById(busScheduleId)) {
+            throw new ReservationException(NO_BUS_SCHEDULE);
+        }
         LocalDateTime now = LocalDateTime.now();
 
         Reservation reservation = reservationRepository.getReservation(userId, busScheduleId)
